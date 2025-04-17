@@ -1,0 +1,70 @@
+CREATE TABLE employees (
+     emp_id INT PRIMARY KEY,
+     emp_name VARCHAR(50),
+     department VARCHAR(50),
+     salary INT,
+     join_date DATE
+ );
+ 
+ -- Insert all values
+ INSERT INTO employees VALUES (1, 'Alice', 'HR', 55000, TO_DATE('2019-01-15', 'YYYY-MM-DD'));
+ INSERT INTO employees VALUES (2, 'Bob', 'IT', 72000, TO_DATE('2020-03-20', 'YYYY-MM-DD'));
+ INSERT INTO employees VALUES (3, 'Charlie', 'HR', 53000, TO_DATE('2021-06-10', 'YYYY-MM-DD'));
+ INSERT INTO employees VALUES (4, 'David', 'IT', 75000, TO_DATE('2018-09-30', 'YYYY-MM-DD'));
+ INSERT INTO employees VALUES (5, 'Eve', 'Sales', 60000, TO_DATE('2020-12-01', 'YYYY-MM-DD'));
+ INSERT INTO employees VALUES (6, 'Frank', 'Sales', 58000, TO_DATE('2021-11-10', 'YYYY-MM-DD'));
+ INSERT INTO employees VALUES (7, 'Grace', 'IT', 72000, TO_DATE('2022-01-25', 'YYYY-MM-DD'));
+ INSERT INTO employees VALUES (8, 'Hannah', 'HR', 56000, TO_DATE('2017-08-05', 'YYYY-MM-DD'));
+ INSERT INTO employees VALUES (9, 'Ivan', 'Sales', 62000, TO_DATE('2019-05-19', 'YYYY-MM-DD'));
+ INSERT INTO employees VALUES (10, 'Julia', 'IT', 70000, TO_DATE('2023-04-03', 'YYYY-MM-DD'));
+ 
+ --1. Compare with Previous and Next using LAG and LEAD
+ SELECT 
+     emp_id, emp_name, salary,
+     LAG(salary) OVER (ORDER BY salary) AS prev_salary,
+     LEAD(salary) OVER (ORDER BY salary) AS next_salary,
+     CASE 
+         WHEN salary > LAG(salary) OVER (ORDER BY salary) THEN 'HIGHER'
+         WHEN salary < LAG(salary) OVER (ORDER BY salary) THEN 'LOWER'
+         ELSE 'EQUAL'
+     END AS comparison_with_previous
+ FROM employees;
+ 
+ -- 2. Rank and Dense Rank within Department
+ SELECT emp_id, emp_name, department, salary,
+        RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS rank_in_dept,
+        DENSE_RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS dense_rank_in_dept
+ FROM employees;
+ 
+ -- 3. Top 3 Salaries per Department
+ WITH ranked_employees AS (
+     SELECT emp_id,
+            emp_name,
+            department,
+            salary,
+            join_date,
+            RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS dept_rank
+     FROM employees
+ )
+ SELECT *
+ FROM ranked_employees
+ WHERE dept_rank <= 3;
+ 
+ -- 4. First 2 Joiners per Department
+ WITH joined_employees AS (
+     SELECT emp_id,
+            emp_name,
+            department,
+            salary,
+            join_date,
+            ROW_NUMBER() OVER (PARTITION BY department ORDER BY join_date ASC) AS row_num
+     FROM employees
+ )
+ SELECT *
+ FROM joined_employees
+ WHERE row_num <= 2;
+ -- 5. Max Salary per Department and Overall
+ SELECT emp_id, emp_name, department, salary,
+        MAX(salary) OVER (PARTITION BY department) AS max_salary_in_dept,
+        MAX(salary) OVER () AS overall_max_salary
+ FROM employees;
